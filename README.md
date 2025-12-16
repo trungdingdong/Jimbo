@@ -102,6 +102,62 @@ Follow these steps to get the application running locally.
    ```
    The `app.py` server is configured to serve the `index.html` file automatically from the root URL.
 
+## Deployment
+
+The project ships with a lightweight multi-stage `Dockerfile` and a `docker-compose.yaml` to streamline deployment. Before building images, make sure you have:
+
+- A `.env` file in the project root that contains at least `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) and `GOOGLE_CLIENT_ID`.
+- The `correct_movement.db` SQLite database stored alongside the project (Docker Compose mounts it automatically).
+
+### Option A: Docker (single container)
+
+1. **Build the image**
+   ```bash
+   docker build -t jimbo-app:latest .
+   ```
+   This uses the multi-stage build to install dependencies and package the application.
+
+2. **Run the container**
+   ```bash
+   docker run --name jimbo_app \
+     -p 5000:5000 \
+     --env-file .env \
+     -v ${PWD}/correct_movement.db:/app/correct_movement.db \
+     jimbo-app:latest
+   ```
+   - The `--env-file` flag injects the required API keys.
+   - The volume mount makes the exercise database available inside the container.
+
+3. **Access the app**
+   Visit `http://localhost:5000` to use the UI.
+
+### Option B: Docker Compose (recommended for local dev)
+
+1. **Update `.env` and `correct_movement.db`**  
+   Ensure both files exist in the repository root.
+
+2. **Start the stack**
+   ```bash
+   docker compose up --build
+   ```
+   - Builds the image (if needed) and starts the `web` service defined in `docker-compose.yaml`.
+   - Automatically maps port `5000`, injects environment variables, and mounts the database.
+
+3. **Verify logs & health**
+   - Compose streams logs to your terminal. Wait for `Running on http://0.0.0.0:5000`.
+   - If you change code, re-run with `docker compose up --build` to rebuild layers.
+
+4. **Stop the stack**
+   ```bash
+   docker compose down
+   ```
+
+### Troubleshooting
+
+- **Missing database**: The `/exercises` and `/analyze-form` endpoints require `correct_movement.db`. Confirm the file exists locally and is mounted into the container.
+- **API keys**: If you see `GOOGLE_API_KEY or GEMINI_API_KEY environment variable not set`, double-check your `.env`.
+- **GPU / TensorFlow**: The provided image targets CPU. For GPU acceleration, base the image on an appropriate CUDA-enabled Python image and install GPU-enabled TensorFlow.
+
 ## Usage
 
 ### Frontend Interface
